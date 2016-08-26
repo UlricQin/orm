@@ -13,7 +13,7 @@ import (
 
 // User 表在default库，即：minos_portal库
 type User struct {
-	ID       int64  `orm:"id"`
+	ID       int64 `orm:"id"`
 	Username string
 	Nickname string
 }
@@ -138,29 +138,10 @@ func main() {
 
 	log.Println("------------------")
 
-	// 我们还对Exec、Query、QueryRow做了简单封装
-	ret, err := UserRepo().Exec("insert into user(username, nickname) values(?, ?)", "nice", "nice")
-	dangerous(err)
-
-	lastid, err = ret.LastInsertId()
-	dangerous(err)
-
-	log.Println("use Exec insert user, lastid:", lastid)
-
-	var name string
-	err = UserRepo().QueryRow("select username from user where id=?", lastid).Scan(&name)
-	dangerous(err)
-
-	log.Println("use QueryRow, name:", name)
-
-	_, err = UserRepo().Exec("delete from user where id = ?", lastid)
-	dangerous(err)
-	log.Println("------------------")
-
 	// 以上封装的方法都是针对单表的，这个简易orm框架也就只做这些事情
 	// 复杂的sql操作可以直接使用内部的*sql.DB，比如
 
-	ret, err = Orm.DBS["naming"].Exec("insert into judge(address, last_update) values(?, now())", "127.0.0.1:7788")
+	ret, err := Orm.DBS["naming"].Exec("insert into judge(address, last_update) values(?, now())", "127.0.0.1:7788")
 	dangerous(err)
 
 	lastid, err = ret.LastInsertId()

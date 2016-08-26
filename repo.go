@@ -90,22 +90,19 @@ func (r *Repo) p(query string, args []interface{}) {
 	}
 }
 
-// Exec 封装*sql.DB中的Exec方法
-func (r *Repo) Exec(query string, args ...interface{}) (sql.Result, error) {
+func (r *Repo) exec(query string, args ...interface{}) (sql.Result, error) {
 	r.insure()
 	r.p(query, args)
 	return r.db.Exec(query, args...)
 }
 
-// QueryRow 封装*sql.DB中的QueryRow方法
-func (r *Repo) QueryRow(query string, args ...interface{}) *sql.Row {
+func (r *Repo) queryRow(query string, args ...interface{}) *sql.Row {
 	r.insure()
 	r.p(query, args)
 	return r.db.QueryRow(query, args...)
 }
 
-// Query 封装*sql.DB中的Query方法
-func (r *Repo) Query(query string, args ...interface{}) (*sql.Rows, error) {
+func (r *Repo) query(query string, args ...interface{}) (*sql.Rows, error) {
 	r.insure()
 	r.p(query, args)
 	return r.db.Query(query, args...)
@@ -150,7 +147,7 @@ func (r *Repo) buildSQL() {
 func (r *Repo) Count() (count int, err error) {
 	r.cols = "count(*) as count"
 	r.buildSQL()
-	err = r.QueryRow(r.sql, r.args...).Scan(&count)
+	err = r.queryRow(r.sql, r.args...).Scan(&count)
 	return
 }
 
@@ -173,7 +170,7 @@ func (r *Repo) Insert(attrs G) (int64, error) {
 		strings.Join(qms, ","),
 	)
 
-	ret, err := r.Exec(s, vals...)
+	ret, err := r.exec(s, vals...)
 	if err != nil {
 		return 0, err
 	}
@@ -186,9 +183,9 @@ func (r *Repo) Delete() (int64, error) {
 	var ret sql.Result
 	var err error
 	if r.where != "" {
-		ret, err = r.Exec(fmt.Sprintf("DELETE FROM `%s` WHERE %s", r.tbl, r.where), r.args...)
+		ret, err = r.exec(fmt.Sprintf("DELETE FROM `%s` WHERE %s", r.tbl, r.where), r.args...)
 	} else {
-		ret, err = r.Exec(fmt.Sprintf("DELETE FROM `%s`", r.tbl))
+		ret, err = r.exec(fmt.Sprintf("DELETE FROM `%s`", r.tbl))
 	}
 
 	if err != nil {
@@ -216,7 +213,7 @@ func (r *Repo) Update(attrs G) (int64, error) {
 		s = fmt.Sprintf("UPDATE `%s` SET %s", r.tbl, strings.Join(keys, ","))
 	}
 
-	ret, err := r.Exec(s, vals...)
+	ret, err := r.exec(s, vals...)
 	if err != nil {
 		return 0, err
 	}
@@ -273,7 +270,7 @@ func (r *Repo) StrCol(col string) ([]string, error) {
 func (r *Repo) col(col string) (*sql.Rows, error) {
 	r.cols = col
 	r.buildSQL()
-	return r.Query(r.sql, r.args...)
+	return r.query(r.sql, r.args...)
 }
 
 // U64s 将uint64类型的slice拼接成逗号分隔的string
@@ -334,7 +331,7 @@ func (r *Repo) Rows() (*sql.Rows, error) {
 // Row 查询一条记录
 func (r *Repo) Row() *sql.Row {
 	r.buildSQL()
-	return r.QueryRow(r.sql, r.args...)
+	return r.queryRow(r.sql, r.args...)
 }
 
 // Find 查找一个struct，传入的第一个参数是struct的指针
