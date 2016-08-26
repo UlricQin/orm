@@ -14,8 +14,8 @@ import (
 // User 表在default库，即：minos_portal库
 type User struct {
 	ID       int64  `orm:"id"`
-	Username string `orm:"username"`
-	Nickname string `orm:"nickname"`
+	Username string
+	Nickname string
 }
 
 // UserRepo 这是每次DB操作的入口函数
