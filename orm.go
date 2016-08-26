@@ -5,25 +5,18 @@ import (
 	"reflect"
 )
 
-// Src DataSource
-type Src struct {
-	Addr string
-	Idle int
-	Max  int
-}
-
 // Orm 一个程序创建一个全局的Orm对象即可
 type Orm struct {
-	DBS      map[string]*sql.DB
-	Mappings map[string]map[string]string
+	dbs      map[string]*sql.DB
+	mappings map[string]map[string]string
 	ShowSQL  bool
 }
 
 // New 创建全局的Orm对象
 func New() *Orm {
 	return &Orm{
-		DBS:      make(map[string]*sql.DB),
-		Mappings: make(map[string]map[string]string),
+		dbs:      make(map[string]*sql.DB),
+		mappings: make(map[string]map[string]string),
 		ShowSQL:  true,
 	}
 }
@@ -38,7 +31,7 @@ func (o *Orm) Add(name, addr string, idle, max int) error {
 	db.SetMaxIdleConns(idle)
 	db.SetMaxOpenConns(max)
 
-	o.DBS[name] = db
+	o.dbs[name] = db
 	return nil
 }
 
@@ -58,7 +51,7 @@ func (o *Orm) Register(vs ...interface{}) {
 				fields[tag] = field.Name
 			}
 		}
-		o.Mappings[typ.String()] = fields
+		o.mappings[typ.String()] = fields
 	}
 }
 
@@ -71,9 +64,18 @@ func (o *Orm) NewRepo(tbl string) *Repo {
 	}
 }
 
+// Use 使用哪个数据库
+func (o *Orm) Use(name string) *sql.DB {
+	db, has := o.dbs[name]
+	if !has {
+		panic("no such database: " + name)
+	}
+	return db
+}
+
 // Tag2field 通过tag查字段名称
 func (o *Orm) Tag2field(typ reflect.Type, key string) string {
-	m, has := o.Mappings[typ.String()]
+	m, has := o.mappings[typ.String()]
 	if !has {
 		return snakeToUpperCamel(key)
 	}

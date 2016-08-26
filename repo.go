@@ -28,11 +28,7 @@ type Repo struct {
 
 // Use 使用哪个数据库实例
 func (r *Repo) Use(name string) *Repo {
-	var found bool
-	r.db, found = r.o.DBS[name]
-	if !found {
-		panic("no such database: " + name)
-	}
+	r.db = r.o.Use(name)
 	return r
 }
 
@@ -76,11 +72,7 @@ func (r *Repo) Cols(cols string) *Repo {
 
 func (r *Repo) insure() {
 	if r.db == nil {
-		db, has := r.o.DBS["default"]
-		if !has {
-			panic("no default database")
-		}
-		r.db = db
+		r.Use("default")
 	}
 }
 
@@ -180,14 +172,17 @@ func (r *Repo) Insert(attrs G) (int64, error) {
 
 // Delete 根据where条件做删除，返回被影响的行数
 func (r *Repo) Delete() (int64, error) {
-	var ret sql.Result
-	var err error
+	s := fmt.Sprintf("DELETE FROM `%s`", r.tbl)
 	if r.where != "" {
-		ret, err = r.exec(fmt.Sprintf("DELETE FROM `%s` WHERE %s", r.tbl, r.where), r.args...)
-	} else {
-		ret, err = r.exec(fmt.Sprintf("DELETE FROM `%s`", r.tbl))
+		s += " WHERE " + r.where
 	}
 
+	if r.limit > 0 {
+		s += " LIMIT ?"
+		r.args = append(r.args, r.limit)
+	}
+
+	ret, err := r.exec(s, r.args...)
 	if err != nil {
 		return 0, err
 	}
@@ -205,12 +200,14 @@ func (r *Repo) Update(attrs G) (int64, error) {
 		vals = append(vals, v)
 	}
 
-	var s string
+	s := fmt.Sprintf("UPDATE `%s` SET %s", r.tbl, strings.Join(keys, ","))
 	if r.where != "" {
-		s = fmt.Sprintf("UPDATE `%s` SET %s WHERE %s", r.tbl, strings.Join(keys, ","), r.where)
+		s += " WHERE " + r.where
 		vals = append(vals, r.args...)
-	} else {
-		s = fmt.Sprintf("UPDATE `%s` SET %s", r.tbl, strings.Join(keys, ","))
+	}
+
+	if r.limit > 0 {
+		vals = append(vals, r.limit)
 	}
 
 	ret, err := r.exec(s, vals...)
