@@ -92,8 +92,8 @@ func main() {
 
 	log.Println("Find user:", user)
 
-	// 更新一条记录
-	num, err := UserRepo().Where("id=?", lastid).Update(orm.G{
+	// 更新一条记录，如果调用了Quiet，将不打印sql语句
+	num, err := UserRepo().Quiet().Where("id=?", lastid).Update(orm.G{
 		"username": "Ulric2",
 		"nickname": "晓辉",
 	})
@@ -131,7 +131,7 @@ func main() {
 	}
 
 	// 删除操作
-	num, err = UserRepo().Where("id>=?", lastid).Delete()
+	num, err = UserRepo().Limit(2).Where("id>=?", lastid).Delete()
 	dangerous(err)
 
 	log.Println("delete user affected:", num)
@@ -141,7 +141,7 @@ func main() {
 	// 以上封装的方法都是针对单表的，这个简易orm框架也就只做这些事情
 	// 复杂的sql操作可以直接使用内部的*sql.DB，比如
 
-	ret, err := Orm.DBS["naming"].Exec("insert into judge(address, last_update) values(?, now())", "127.0.0.1:7788")
+	ret, err := Orm.Use("naming").Exec("insert into judge(address, last_update) values(?, now())", "127.0.0.1:7788")
 	dangerous(err)
 
 	lastid, err = ret.LastInsertId()
@@ -149,13 +149,13 @@ func main() {
 
 	log.Println("insert address success, lastid:", lastid)
 
-	row := Orm.DBS["naming"].QueryRow("select address from judge where id = ?", lastid)
+	row := Orm.Use("naming").QueryRow("select address from judge where id = ?", lastid)
 	var address string
 	err = row.Scan(&address)
 	dangerous(err)
 	log.Println("query row address:", address)
 
-	_, err = Orm.DBS["naming"].Exec("delete from judge where id=?", lastid)
+	_, err = Orm.Use("naming").Exec("delete from judge where id=?", lastid)
 	dangerous(err)
 }
 
@@ -164,5 +164,6 @@ func dangerous(err error) {
 		log.Fatalln(err)
 	}
 }
+
 
 ```
