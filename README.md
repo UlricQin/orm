@@ -1,6 +1,6 @@
-*最简单的orm小框架，只支持mysql*
+*最简单的orm小框架，只支持mysql，下面是基本用法范例*
 
-```
+```go
 package main
 
 import (
