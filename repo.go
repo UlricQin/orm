@@ -154,8 +154,8 @@ func (r *Repo) Count() (count int, err error) {
 	return
 }
 
-// Insert 保存一条数据
-func (r *Repo) Insert(attrs G) (sql.Result, error) {
+// Insert 保存一条数据，返回lastid
+func (r *Repo) Insert(attrs G) (int64, error) {
 	ln := len(attrs)
 	keys := make([]string, 0, ln)
 	qms := make([]string, 0, ln)
@@ -173,20 +173,33 @@ func (r *Repo) Insert(attrs G) (sql.Result, error) {
 		strings.Join(qms, ","),
 	)
 
-	return r.Exec(s, vals...)
-}
-
-// Delete 根据where条件做删除
-func (r *Repo) Delete() (sql.Result, error) {
-	if r.where != "" {
-		return r.Exec(fmt.Sprintf("DELETE FROM `%s` WHERE %s", r.tbl, r.where), r.args...)
+	ret, err := r.Exec(s, vals...)
+	if err != nil {
+		return 0, err
 	}
 
-	return r.Exec(fmt.Sprintf("DELETE FROM `%s`", r.tbl))
+	return ret.LastInsertId()
+}
+
+// Delete 根据where条件做删除，返回被影响的行数
+func (r *Repo) Delete() (int64, error) {
+	var ret sql.Result
+	var err error
+	if r.where != "" {
+		ret, err = r.Exec(fmt.Sprintf("DELETE FROM `%s` WHERE %s", r.tbl, r.where), r.args...)
+	} else {
+		ret, err = r.Exec(fmt.Sprintf("DELETE FROM `%s`", r.tbl))
+	}
+
+	if err != nil {
+		return 0, err
+	}
+
+	return ret.RowsAffected()
 }
 
 // Update 更新记录
-func (r *Repo) Update(attrs G) (sql.Result, error) {
+func (r *Repo) Update(attrs G) (int64, error) {
 	ln := len(attrs)
 	keys := make([]string, 0, ln)
 	vals := make([]interface{}, 0, ln)
@@ -195,14 +208,20 @@ func (r *Repo) Update(attrs G) (sql.Result, error) {
 		vals = append(vals, v)
 	}
 
+	var s string
 	if r.where != "" {
+		s = fmt.Sprintf("UPDATE `%s` SET %s WHERE %s", r.tbl, strings.Join(keys, ","), r.where)
 		vals = append(vals, r.args...)
-		s := fmt.Sprintf("UPDATE `%s` SET %s WHERE %s", r.tbl, strings.Join(keys, ","), r.where)
-		return r.Exec(s, vals...)
+	} else {
+		s = fmt.Sprintf("UPDATE `%s` SET %s", r.tbl, strings.Join(keys, ","))
 	}
 
-	s := fmt.Sprintf("UPDATE `%s` SET %s", r.tbl, strings.Join(keys, ","))
-	return r.Exec(s, vals...)
+	ret, err := r.Exec(s, vals...)
+	if err != nil {
+		return 0, err
+	}
+
+	return ret.RowsAffected()
 }
 
 // I64Col 获取一列数据，数据类型是int64

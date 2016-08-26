@@ -73,13 +73,10 @@ func main() {
 	Orm.Register(new(User), new(Judge))
 
 	// 插入一条记录
-	ret, err := UserRepo().Insert(orm.G{
+	lastid, err := UserRepo().Insert(orm.G{
 		"username": "UlricQin",
 		"nickname": "秦晓辉",
 	})
-	dangerous(err)
-
-	lastid, err := ret.LastInsertId()
 	dangerous(err)
 
 	log.Println("insert user success, lastid:", lastid)
@@ -96,13 +93,10 @@ func main() {
 	log.Println("Find user:", user)
 
 	// 更新一条记录
-	ret, err = UserRepo().Where("id=?", lastid).Update(orm.G{
+	num, err := UserRepo().Where("id=?", lastid).Update(orm.G{
 		"username": "Ulric2",
 		"nickname": "晓辉",
 	})
-	dangerous(err)
-
-	num, err := ret.RowsAffected()
 	dangerous(err)
 
 	log.Println("update affected rows:", num)
@@ -137,13 +131,31 @@ func main() {
 	}
 
 	// 删除操作
-	ret, err = UserRepo().Where("id>=?", lastid).Delete()
-	dangerous(err)
-
-	num, err = ret.RowsAffected()
+	num, err = UserRepo().Where("id>=?", lastid).Delete()
 	dangerous(err)
 
 	log.Println("delete user affected:", num)
+
+	log.Println("------------------")
+
+	// 我们还对Exec、Query、QueryRow做了简单封装
+	ret, err := UserRepo().Exec("insert into user(username, nickname) values(?, ?)", "nice", "nice")
+	dangerous(err)
+
+	lastid, err = ret.LastInsertId()
+	dangerous(err)
+
+	log.Println("use Exec insert user, lastid:", lastid)
+
+	var name string
+	err = UserRepo().QueryRow("select username from user where id=?", lastid).Scan(&name)
+	dangerous(err)
+
+	log.Println("use QueryRow, name:", name)
+
+	_, err = UserRepo().Exec("delete from user where id = ?", lastid)
+	dangerous(err)
+	log.Println("------------------")
 
 	// 以上封装的方法都是针对单表的，这个简易orm框架也就只做这些事情
 	// 复杂的sql操作可以直接使用内部的*sql.DB，比如
@@ -172,8 +184,4 @@ func dangerous(err error) {
 	}
 }
 
-// debug演示
-// orderby、limit等还没写完
-// 封装Exec方法，insert、delete、update最终都调用Exec方法，在里边处理log
-// 还有QueryRow和Query方法也是一样
 ```
