@@ -322,6 +322,7 @@ func (r *Repo) Rows() (*sql.Rows, error) {
 		return nil, err
 	}
 
+	defer stmt.Close()
 	return stmt.Query(r.args...)
 }
 
